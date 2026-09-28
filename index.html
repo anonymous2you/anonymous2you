@@ -26,7 +26,7 @@
       flex-direction: column;
       align-items: center;
       width: 100%;
-      max-width: 420px;
+      max-width: 440px;
     }
 
     .page-header {
@@ -48,11 +48,12 @@
     }
 
     .target-url {
-      font-size: 1.25rem;
+      font-size: 1.1rem;
       font-weight: 600;
       color: #24292e;
       margin-bottom: 24px;
       word-break: break-all;
+      min-height: 1.5em;
     }
 
     .button-group {
@@ -70,6 +71,9 @@
       text-decoration: none;
       transition: background-color 0.2s, border-color 0.2s;
       border: 1px solid transparent;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
     }
 
     .btn-copy {
@@ -85,9 +89,6 @@
     .btn-open {
       background-color: #2ea44f;
       color: #ffffff;
-      display: inline-flex;
-      justify-content: center;
-      align-items: center;
     }
 
     .btn-open:hover {
@@ -101,28 +102,57 @@
     <h1 class="page-header">Chat with anonymous2you</h1>
 
     <div class="tile">
-      <div class="target-url" id="targetLink">https://pumpkin.com</div>
+      <div class="target-url" id="targetLink">https://www.coffeeandfun.com/private-line/?chat=aaa69fee-4e95-4829-abe3-089effcbdd12</div>
       <div class="button-group">
         <button class="btn btn-copy" id="copyBtn" onclick="handleCopy()">Copy Link</button>
-        <a class="btn btn-open" href="https://pumpkin.com" target="_blank" rel="noopener noreferrer">Open Link</a>
+        <a class="btn btn-open" id="openBtn" href="https://www.coffeeandfun.com/private-line/?chat=aaa69fee-4e95-4829-abe3-089effcbdd12" target="_blank" rel="noopener noreferrer">Open Link</a>
       </div>
     </div>
   </main>
 
   <script>
-    function handleCopy() {
-      const linkText = document.getElementById('targetLink').innerText.trim();
-      const copyBtn = document.getElementById('copyBtn');
+    const DOC_ID = "1gAkQdWNL_CX3FULZr93nCOH97DLhZ-IBPecTRphnlXA";
+    const EXPORT_URL = `https://docs.google.com/document/d/${DOC_ID}/export?format=txt`;
+    const PROXY_URL = `https://api.allorigins.win/raw?url=${encodeURIComponent(EXPORT_URL)}`;
 
-      navigator.clipboard.writeText(linkText).then(() => {
-        copyBtn.innerText = 'Copied!';
+    const targetLinkEl = document.getElementById("targetLink");
+    const openBtn = document.getElementById("openBtn");
+    const copyBtn = document.getElementById("copyBtn");
+
+    let currentUrl = targetLinkEl.innerText.trim();
+
+    async function syncUrlFromDoc() {
+      try {
+        const res = await fetch(`${PROXY_URL}&_=${Date.now()}`);
+        if (!res.ok) return;
+
+        const text = await res.text();
+        const match = text.match(/https?:\/\/[^\s\r\n]+/);
+
+        if (match && match[0] && match[0] !== currentUrl) {
+          currentUrl = match[0].trim();
+          targetLinkEl.innerText = currentUrl;
+          openBtn.href = currentUrl;
+        }
+      } catch (err) {
+        console.warn("Doc sync poll failed:", err);
+      }
+    }
+
+    function handleCopy() {
+      navigator.clipboard.writeText(currentUrl).then(() => {
+        copyBtn.innerText = "Copied!";
         setTimeout(() => {
-          copyBtn.innerText = 'Copy Link';
+          copyBtn.innerText = "Copy Link";
         }, 2000);
       }).catch(() => {
-        copyBtn.innerText = 'Failed to copy';
+        copyBtn.innerText = "Failed to copy";
       });
     }
+
+    // Initial check on load, then poll every 60 seconds
+    syncUrlFromDoc();
+    setInterval(syncUrlFromDoc, 60000);
   </script>
 
 </body>
