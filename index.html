@@ -3,348 +3,171 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Anonymous P2P Chat</title>
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <title>Anonymous Room Chat</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-
-    body {
-      background-color: #0f172a;
-      color: #f8fafc;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 16px;
-    }
-
-    .app-card {
-      background-color: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 480px;
-      height: 90vh;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-      overflow: hidden;
-    }
-
-    .header {
-      padding: 16px;
-      background-color: #0f172a;
-      border-bottom: 1px solid #334155;
-      text-align: center;
-    }
-
-    .header h1 {
-      font-size: 1.15rem;
-      font-weight: 600;
-    }
-
-    .status-badge {
-      display: inline-block;
-      font-size: 0.75rem;
-      padding: 3px 8px;
-      border-radius: 9999px;
-      margin-top: 6px;
-      background-color: #475569;
-      color: #cbd5e1;
-    }
-
-    .status-badge.connected {
-      background-color: #166534;
-      color: #bbf7d0;
-    }
-
-    .panel {
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .input-group {
-      display: flex;
-      gap: 8px;
-    }
-
-    input[type="text"] {
-      flex: 1;
-      padding: 10px 14px;
-      border-radius: 6px;
-      border: 1px solid #475569;
-      background-color: #0f172a;
-      color: #f8fafc;
-      font-size: 0.9rem;
-      outline: none;
-    }
-
-    input[type="text"]:focus {
-      border-color: #38bdf8;
-    }
-
-    button {
-      padding: 10px 16px;
-      border: none;
-      border-radius: 6px;
-      background-color: #2563eb;
-      color: #ffffff;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: background 0.2s;
-    }
-
-    button:hover {
-      background-color: #1d4ed8;
-    }
-
-    button.btn-secondary {
-      background-color: #334155;
-    }
-
-    button.btn-secondary:hover {
-      background-color: #475569;
-    }
-
-    #chatArea {
-      flex: 1;
-      display: none;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .messages {
-      flex: 1;
-      padding: 16px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .msg {
-      max-width: 80%;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      line-height: 1.4;
-      word-break: break-word;
-    }
-
-    .msg.incoming {
-      align-self: flex-start;
-      background-color: #334155;
-      color: #f8fafc;
-    }
-
-    .msg.outgoing {
-      align-self: flex-end;
-      background-color: #2563eb;
-      color: #ffffff;
-    }
-
-    .msg.system {
-      align-self: center;
-      background: none;
-      color: #94a3b8;
-      font-size: 0.75rem;
-      font-style: italic;
-    }
-
-    .msg .sender-label {
-      font-size: 0.7rem;
-      opacity: 0.75;
-      margin-bottom: 2px;
-      display: block;
-    }
-
-    .chat-input-bar {
-      padding: 12px;
-      background-color: #0f172a;
-      border-top: 1px solid #334155;
-      display: flex;
-      gap: 8px;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; }
+    .app-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; width: 100%; max-width: 480px; height: 90vh; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.4); overflow: hidden; }
+    .header { padding: 16px; background-color: #0f172a; border-bottom: 1px solid #334155; text-align: center; }
+    .header h1 { font-size: 1.15rem; font-weight: 600; }
+    .panel { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    label { font-size: 0.85rem; color: #94a3b8; }
+    input[type="text"] { padding: 10px 14px; border-radius: 6px; border: 1px solid #475569; background-color: #0f172a; color: #f8fafc; font-size: 0.9rem; outline: none; }
+    input[type="text"]:focus { border-color: #38bdf8; }
+    button { padding: 12px; border: none; border-radius: 6px; background-color: #2563eb; color: #ffffff; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+    button:hover { background-color: #1d4ed8; }
+    
+    #chatArea { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+    .messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .msg { max-width: 80%; padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; line-height: 1.4; word-break: break-word; }
+    .msg.incoming { align-self: flex-start; background-color: #334155; color: #f8fafc; }
+    .msg.outgoing { align-self: flex-end; background-color: #2563eb; color: #ffffff; }
+    .msg .sender-label { font-size: 0.7rem; opacity: 0.75; margin-bottom: 2px; display: block; }
+    .msg .time-label { font-size: 0.65rem; opacity: 0.6; margin-top: 4px; display: block; text-align: right; }
+    
+    .chat-input-bar { padding: 12px; background-color: #0f172a; border-top: 1px solid #334155; display: flex; gap: 8px; }
+    .chat-input-bar input { flex: 1; }
+    .chat-input-bar button { padding: 10px 16px; }
   </style>
 </head>
 <body>
 
   <div class="app-card">
     <div class="header">
-      <h1>Anonymous 1-on-1 Chat</h1>
-      <span class="status-badge" id="statusBadge">Offline</span>
+      <h1 id="headerTitle">Anonymous Chat</h1>
     </div>
 
-    <!-- Step 1: Select Username -->
+    <!-- Login Screen -->
     <div class="panel" id="loginPanel">
-      <label style="font-size: 0.85rem; color: #94a3b8;">Choose your anonymous handle:</label>
       <div class="input-group">
-        <input type="text" id="usernameInput" placeholder="e.g. shadow42" maxlength="20" />
-        <button onclick="registerUser()">Register</button>
+        <label>Your Username:</label>
+        <input type="text" id="usernameInput" placeholder="e.g. shadow42" />
       </div>
+      <div class="input-group">
+        <label>Secret Room Name:</label>
+        <input type="text" id="roomInput" placeholder="e.g. vault99" />
+      </div>
+      <button id="joinBtn">Join Room</button>
     </div>
 
-    <!-- Step 2: Connect to a Peer -->
-    <div class="panel" id="connectPanel" style="display: none;">
-      <p style="font-size: 0.85rem; color: #94a3b8;">
-        Your handle: <strong id="myHandleDisplay" style="color: #38bdf8;"></strong>
-      </p>
-      <label style="font-size: 0.85rem; color: #94a3b8;">Enter your friend's handle to start chat:</label>
-      <div class="input-group">
-        <input type="text" id="peerInput" placeholder="Friend's handle..." />
-        <button onclick="connectToPeer()">Connect</button>
-      </div>
-    </div>
-
-    <!-- Step 3: Chat Screen -->
+    <!-- Chat Screen -->
     <div id="chatArea">
       <div class="messages" id="messagesBox"></div>
       <div class="chat-input-bar">
-        <input type="text" id="msgInput" placeholder="Type a message..." onkeydown="handleEnter(event)" />
-        <button onclick="sendMessage()">Send</button>
+        <input type="text" id="msgInput" placeholder="Type a message..." />
+        <button id="sendBtn">Send</button>
       </div>
     </div>
   </div>
 
-  <script>
-    let peer = null;
-    let conn = null;
-    let myHandle = "";
-    let peerHandle = "";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
-    const statusBadge = document.getElementById("statusBadge");
+    const firebaseConfig = {
+      apiKey: "AIzaSyA2sIW2TFBC3J2usxPGZAErBDikxNndGVU",
+      authDomain: "anon-chat-app-bd146.firebaseapp.com",
+      projectId: "anon-chat-app-bd146",
+      storageBucket: "anon-chat-app-bd146.firebasestorage.app",
+      messagingSenderId: "789654062255",
+      appId: "1:789654062255:web:5c5e44252ff07fd62e405a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let myName = "";
+    let roomName = "";
+
     const loginPanel = document.getElementById("loginPanel");
-    const connectPanel = document.getElementById("connectPanel");
     const chatArea = document.getElementById("chatArea");
     const messagesBox = document.getElementById("messagesBox");
     const msgInput = document.getElementById("msgInput");
+    const headerTitle = document.getElementById("headerTitle");
+    const usernameInput = document.getElementById("usernameInput");
+    const roomInput = document.getElementById("roomInput");
 
-    // Clean prefix to avoid namespace collisions on the free public broker
-    const APP_PREFIX = "anon2you_";
+    const savedName = localStorage.getItem("anon_username");
+    const savedRoom = localStorage.getItem("anon_room");
+    
+    if (savedName) usernameInput.value = savedName;
+    if (savedRoom) roomInput.value = savedRoom;
 
-    function registerUser() {
-      const input = document.getElementById("usernameInput").value.trim().toLowerCase();
-      if (!input || !/^[a-z0-9_-]+$/.test(input)) {
-        alert("Please use alphanumeric characters, underscores, or dashes only.");
+    document.getElementById("joinBtn").addEventListener("click", () => {
+      myName = usernameInput.value.trim();
+      roomName = roomInput.value.trim().toLowerCase();
+
+      if (!myName || !roomName) {
+        alert("Please enter both a username and a room name.");
         return;
       }
 
-      myHandle = input;
-      statusBadge.innerText = "Connecting to P2P network...";
+      localStorage.setItem("anon_username", myName);
+      localStorage.setItem("anon_room", roomName);
 
-      // Initialize peer with a custom ID prefixed to keep unique
-      peer = new Peer(APP_PREFIX + myHandle);
-
-      peer.on("open", (id) => {
-        statusBadge.innerText = "Ready • Waiting for chat";
-        document.getElementById("myHandleDisplay").innerText = myHandle;
-        loginPanel.style.display = "none";
-        connectPanel.style.display = "flex";
-      });
-
-      // Handle incoming connection requests from another user
-      peer.on("connection", (incomingConn) => {
-        conn = incomingConn;
-        peerHandle = conn.peer.replace(APP_PREFIX, "");
-        setupConnectionEvents();
-        startChatSession();
-        appendSystemMessage(`Connected with ${peerHandle}`);
-      });
-
-      peer.on("error", (err) => {
-        if (err.type === "unavailable-id") {
-          alert("That handle is already taken. Please choose another one.");
-          statusBadge.innerText = "Offline";
-        } else {
-          console.error("PeerJS error:", err);
-          statusBadge.innerText = "Connection error";
-        }
-      });
-    }
-
-    function connectToPeer() {
-      const target = document.getElementById("peerInput").value.trim().toLowerCase();
-      if (!target) return;
-      if (target === myHandle) {
-        alert("You cannot connect to yourself.");
-        return;
-      }
-
-      statusBadge.innerText = "Reaching out...";
-      peerHandle = target;
-      conn = peer.connect(APP_PREFIX + peerHandle);
-      setupConnectionEvents();
-    }
-
-    function setupConnectionEvents() {
-      conn.on("open", () => {
-        startChatSession();
-        appendSystemMessage(`Connected directly to ${peerHandle}`);
-      });
-
-      conn.on("data", (data) => {
-        appendMessage(data.sender, data.text, "incoming");
-      });
-
-      conn.on("close", () => {
-        appendSystemMessage("Peer disconnected.");
-        statusBadge.innerText = "Disconnected";
-        statusBadge.classList.remove("connected");
-      });
-    }
-
-    function startChatSession() {
-      connectPanel.style.display = "none";
+      loginPanel.style.display = "none";
       chatArea.style.display = "flex";
-      statusBadge.innerText = `Connected: ${peerHandle}`;
-      statusBadge.classList.add("connected");
+      headerTitle.innerText = `Room: ${roomName}`;
+
+      loadMessages();
+    });
+
+    function loadMessages() {
+      const messagesRef = collection(db, "chats", roomName, "messages");
+      const q = query(messagesRef, orderBy("timestamp", "asc"));
+
+      onSnapshot(q, (snapshot) => {
+        messagesBox.innerHTML = ""; 
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          displayMessage(data);
+        });
+        messagesBox.scrollTop = messagesBox.scrollHeight;
+      });
     }
 
-    function sendMessage() {
+    async function sendMessage() {
       const text = msgInput.value.trim();
-      if (!text || !conn || !conn.open) return;
-
-      conn.send({ sender: myHandle, text: text });
-      appendMessage("You", text, "outgoing");
+      if (!text) return;
       msgInput.value = "";
-      msgInput.focus();
+
+      await addDoc(collection(db, "chats", roomName, "messages"), {
+        sender: myName,
+        text: text,
+        timestamp: serverTimestamp()
+      });
     }
 
-    function handleEnter(e) {
+    document.getElementById("sendBtn").addEventListener("click", sendMessage);
+    msgInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") sendMessage();
-    }
+    });
 
-    function appendMessage(sender, text, type) {
+    function displayMessage(data) {
+      const isMe = data.sender === myName;
       const bubble = document.createElement("div");
-      bubble.classList.add("msg", type);
+      bubble.classList.add("msg", isMe ? "outgoing" : "incoming");
 
       const label = document.createElement("span");
       label.classList.add("sender-label");
-      label.innerText = sender;
+      label.innerText = data.sender;
 
       const body = document.createElement("span");
-      body.innerText = text;
+      body.innerText = data.text;
 
       bubble.appendChild(label);
       bubble.appendChild(body);
-      messagesBox.appendChild(bubble);
-      messagesBox.scrollTop = messagesBox.scrollHeight;
-    }
 
-    function appendSystemMessage(text) {
-      const bubble = document.createElement("div");
-      bubble.classList.add("msg", "system");
-      bubble.innerText = text;
+      if (data.timestamp) {
+        const timeLabel = document.createElement("span");
+        timeLabel.classList.add("time-label");
+        const date = data.timestamp.toDate();
+        timeLabel.innerText = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        bubble.appendChild(timeLabel);
+      }
+
       messagesBox.appendChild(bubble);
-      messagesBox.scrollTop = messagesBox.scrollHeight;
     }
   </script>
 </body>
