@@ -8,8 +8,14 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; }
     .app-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; width: 100%; max-width: 480px; height: 90vh; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.4); overflow: hidden; }
-    .header { padding: 16px; background-color: #0f172a; border-bottom: 1px solid #334155; text-align: center; }
-    .header h1 { font-size: 1.15rem; font-weight: 600; }
+    .header { position: relative; padding: 16px 52px; background-color: #0f172a; border-bottom: 1px solid #334155; text-align: center; }
+    .header h1 { font-size: 1.15rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #refreshBtn { display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; padding: 0; align-items: center; justify-content: center; background: transparent; border: 1px solid #334155; border-radius: 50%; color: #94a3b8; font-size: 1.1rem; line-height: 1; }
+    #refreshBtn:hover { background: #334155; color: #f8fafc; }
+    #refreshBtn.err { border-color: #ef4444; color: #ef4444; }
+    #refreshIcon { display: inline-block; }
+    #refreshBtn.spin #refreshIcon { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .panel { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
     .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
     label { font-size: 0.85rem; color: #94a3b8; }
@@ -19,7 +25,9 @@
     button:hover { background-color: #1d4ed8; }
 
     #chatArea { flex: 1; display: none; flex-direction: column; overflow: hidden; }
-    .messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; overflow-anchor: none; }
+    .older-btn { align-self: center; padding: 4px 12px; font-size: 0.72rem; font-weight: 500; background: #334155; color: #cbd5e1; border-radius: 999px; }
+    .older-btn:hover { background: #475569; }
 
     .date-sep { align-self: center; font-size: 0.72rem; color: #94a3b8; background: #0f172a; padding: 3px 12px; border-radius: 999px; margin: 6px 0; }
 
@@ -41,15 +49,9 @@
     .actions { display: flex; align-items: center; flex-shrink: 0; }
     .quote { margin-bottom: 6px; padding: 4px 8px; border-left: 3px solid #7dd3fc; background: rgba(0,0,0,0.22); border-radius: 4px; font-size: 0.78rem; cursor: pointer; }
     .quote .q-name { display: block; font-weight: 600; opacity: 0.9; font-size: 0.7rem; }
-    .quote .q-text { display: block; opacity: 0.8; white-space: pre-wrap; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+    .quote .q-text { opacity: 0.8; white-space: pre-wrap; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
     .row.flash .msg { animation: flash 1.2s ease; }
     @keyframes flash { 0%, 60% { box-shadow: 0 0 0 3px #38bdf8; } 100% { box-shadow: 0 0 0 0 transparent; } }
-    .reply-bar { display: none; align-items: center; gap: 8px; padding: 8px 12px; background: #0f172a; border-top: 1px solid #334155; }
-    .reply-bar .r-info { flex: 1; min-width: 0; border-left: 3px solid #38bdf8; padding-left: 8px; font-size: 0.78rem; }
-    .reply-bar .r-name { display: block; color: #7dd3fc; font-weight: 600; font-size: 0.72rem; }
-    .reply-bar .r-text { display: block; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .reply-bar button { padding: 2px 8px; background: transparent; color: #94a3b8; font-size: 1.1rem; }
-    .reply-bar button:hover { background: #334155; }
     .chip { margin-top: -6px; padding: 1px 8px; font-size: 0.78rem; font-weight: 500; background: #0f172a; border: 1px solid #475569; color: #f8fafc; border-radius: 999px; z-index: 1; }
     .chip:hover { background: #1e293b; }
     .picker { display: flex; gap: 2px; margin-top: 4px; padding: 4px 6px; background: #0f172a; border: 1px solid #475569; border-radius: 999px; }
@@ -60,6 +62,13 @@
     .details .d-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
     .details .d-emoji { font-size: 1.1rem; }
     .details .d-title { color: #94a3b8; font-size: 0.7rem; margin-bottom: 4px; }
+
+    .reply-bar { display: none; align-items: center; gap: 8px; padding: 8px 12px; background: #0f172a; border-top: 1px solid #334155; }
+    .reply-bar .r-info { flex: 1; min-width: 0; border-left: 3px solid #38bdf8; padding-left: 8px; font-size: 0.78rem; }
+    .reply-bar .r-name { display: block; color: #7dd3fc; font-weight: 600; font-size: 0.72rem; }
+    .reply-bar .r-text { display: block; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .reply-bar button { padding: 2px 8px; background: transparent; color: #94a3b8; font-size: 1.1rem; }
+    .reply-bar button:hover { background: #334155; }
 
     .chat-input-bar { padding: 12px 12px 4px; background-color: #0f172a; border-top: 1px solid #334155; display: flex; gap: 8px; align-items: flex-end; }
     .chat-input-bar textarea { flex: 1; resize: none; max-height: 120px; line-height: 1.4; }
@@ -72,6 +81,7 @@
   <div class="app-card">
     <div class="header">
       <h1 id="headerTitle">Anonymous Chat</h1>
+      <button id="refreshBtn" title="Refresh chat" aria-label="Refresh chat"><span id="refreshIcon">↻</span></button>
     </div>
 
     <!-- Login Screen -->
@@ -107,7 +117,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-    import { getFirestore, collection, doc, addDoc, updateDoc, deleteField, FieldPath, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, addDoc, updateDoc, writeBatch, deleteField, FieldPath, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyA2sIW2TFBC3J2usxPGZAErBDikxNndGVU",
@@ -122,34 +132,26 @@
     const db = getFirestore(app);
 
     const TZ = "Asia/Dhaka";
-    const REACTIONS = {
-      "❤️": "Love",
-      "😂": "Haha",
-      "😮": "Wow",
-      "😢": "Sad",
-      "😡": "Angry",
-      "👍": "Like"
-    };
+    const PAGE = 150; // newest messages loaded per page; "Load earlier messages" adds more
+    const REACTIONS = { "❤️": "Love", "😂": "Haha", "😮": "Wow", "😢": "Sad", "😡": "Angry", "👍": "Like" };
 
-    let myName = "";
-    let roomName = "";
-    let cache = [];           // [{ id, data, date, pending }]
-    let initialized = false;
+    let myName = "", roomName = "", joined = false;
+    let store = new Map();            // id -> { id, data, ms, key, pending }
     let ui = { picker: null, details: null };
+    let replyTarget = null;
+    let pageLimit = PAGE, hasMore = false;
+    let unsub = null, subGen = 0, retryTimer = null, retryDelay = 1000;
     const marking = new Set();
-    let replyTarget = null;   // cache item currently being replied to
+    const rowEls = new Map();         // id -> { el, sig }
+    const sepEls = new Map();         // dayKey -> element
 
-    const loginPanel = document.getElementById("loginPanel");
-    const chatArea = document.getElementById("chatArea");
-    const messagesBox = document.getElementById("messagesBox");
-    const msgInput = document.getElementById("msgInput");
-    const headerTitle = document.getElementById("headerTitle");
-    const usernameInput = document.getElementById("usernameInput");
-    const roomInput = document.getElementById("roomInput");
+    const $ = (id) => document.getElementById(id);
+    const loginPanel = $("loginPanel"), chatArea = $("chatArea"), messagesBox = $("messagesBox");
+    const msgInput = $("msgInput"), headerTitle = $("headerTitle"), refreshBtn = $("refreshBtn");
+    const usernameInput = $("usernameInput"), roomInput = $("roomInput"), replyBar = $("replyBar");
 
     const savedName = localStorage.getItem("anon_username");
     const savedRoom = localStorage.getItem("anon_room");
-
     if (savedName) usernameInput.value = savedName;
     if (savedRoom) roomInput.value = savedRoom;
 
@@ -158,69 +160,53 @@
     const longDayFmt = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, weekday: "short", day: "numeric", month: "short", year: "numeric" });
     const timeFmt = new Intl.DateTimeFormat([], { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
     const dayKey = (d) => dayFmt.format(d);
-
-    function dayLabel(d) {
-      const k = dayKey(d);
-      if (k === dayKey(new Date())) return "Today";
-      if (k === dayKey(new Date(Date.now() - 86400000))) return "Yesterday";
-      return longDayFmt.format(d);
+    function dayLabel(key, ms) {
+      if (key === dayKey(new Date())) return "Today";
+      if (key === dayKey(new Date(Date.now() - 86400000))) return "Yesterday";
+      return longDayFmt.format(new Date(ms));
     }
 
     /* ---------- Sound + notifications ---------- */
     let audioCtx = null;
     function ensureAudio() {
       try {
-        if (!audioCtx) {
-          const AC = window.AudioContext || window.webkitAudioContext;
-          if (AC) audioCtx = new AC();
-        }
+        if (!audioCtx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) audioCtx = new AC(); }
         if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
       } catch (e) { /* ignore */ }
     }
-
     function playSound() {
       try {
         ensureAudio();
         if (!audioCtx) return;
         const now = audioCtx.currentTime;
         [[880, 0], [1175, 0.13]].forEach(([freq, offset]) => {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = "sine";
-          osc.frequency.value = freq;
+          const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+          osc.type = "sine"; osc.frequency.value = freq;
           gain.gain.setValueAtTime(0.0001, now + offset);
           gain.gain.exponentialRampToValueAtTime(0.25, now + offset + 0.02);
           gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.18);
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start(now + offset);
-          osc.stop(now + offset + 0.2);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(now + offset); osc.stop(now + offset + 0.2);
         });
       } catch (e) { /* ignore */ }
     }
-
     function notifyNewMessage(data) {
       playSound();
       if (!("Notification" in window) || Notification.permission !== "granted") return;
       try {
         const n = new Notification(`${data.sender} · Room ${roomName}`, {
-          body: String(data.text || "").slice(0, 160),
-          tag: "anon-chat-" + roomName,
-          renotify: true
+          body: String(data.text || "").slice(0, 160), tag: "anon-chat-" + roomName, renotify: true
         });
         n.onclick = () => { window.focus(); n.close(); };
       } catch (e) { /* some mobile browsers only allow service-worker notifications */ }
     }
 
     /* ---------- Join ---------- */
-    document.getElementById("joinBtn").addEventListener("click", () => {
+    $("joinBtn").addEventListener("click", () => {
+      if (joined) return; // prevents duplicate listeners
       myName = usernameInput.value.trim();
       roomName = roomInput.value.trim().toLowerCase();
-
-      if (!myName || !roomName) {
-        alert("Please enter both a username and a room name.");
-        return;
-      }
+      if (!myName || !roomName) { alert("Please enter both a username and a room name."); return; }
 
       localStorage.setItem("anon_username", myName);
       localStorage.setItem("anon_room", roomName);
@@ -230,78 +216,116 @@
         try { Notification.requestPermission(); } catch (e) { /* ignore */ }
       }
 
+      joined = true;
       loginPanel.style.display = "none";
       chatArea.style.display = "flex";
+      refreshBtn.style.display = "flex";
       headerTitle.innerText = `Room: ${roomName}`;
-
-      loadMessages();
+      subscribe("bottom");
     });
 
-    /* ---------- Load / listen ---------- */
-    function loadMessages() {
-      const messagesRef = collection(db, "chats", roomName, "messages");
-      const q = query(messagesRef, orderBy("timestamp", "asc"));
+    /* ---------- Real-time subscription ---------- */
+    function setSyncing(on) { refreshBtn.classList.toggle("spin", on); }
 
-      onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
-        const first = !initialized;
+    // mode: "bottom" (scroll to newest after first load) | object anchor (keep scroll position when loading older)
+    function subscribe(mode) {
+      if (unsub) { unsub(); unsub = null; }
+      clearTimeout(retryTimer);
+      const gen = ++subGen;
+      let first = true;
+      setSyncing(true);
 
-        if (!first) {
-          snapshot.docChanges().forEach((ch) => {
-            if (ch.type === "added" && !ch.doc.metadata.hasPendingWrites) {
-              const d = ch.doc.data();
-              if (d.sender !== myName) notifyNewMessage(d);
-            }
-          });
-        }
+      // newest N messages (desc + limit), sorted ascending on the client
+      const q = query(collection(db, "chats", roomName, "messages"), orderBy("timestamp", "desc"), limit(pageLimit));
 
-        cache = snapshot.docs.map((d) => {
+      unsub = onSnapshot(q, { includeMetadataChanges: true }, (snap) => {
+        if (gen !== subGen) return;
+        retryDelay = 1000;
+        setSyncing(false);
+        refreshBtn.classList.remove("err");
+
+        snap.docChanges({ includeMetadataChanges: true }).forEach((ch) => {
+          if (ch.type === "removed") return; // window shift; keep what we already show
+          const d = ch.doc;
           const data = d.data({ serverTimestamps: "estimate" });
-          const ts = data.timestamp && data.timestamp.toDate ? data.timestamp.toDate() : new Date();
-          return { id: d.id, data, date: ts, pending: d.metadata.hasPendingWrites };
+          const isNew = !store.has(d.id);
+          if (!first && isNew && ch.type === "added" && !d.metadata.hasPendingWrites && data.sender !== myName) notifyNewMessage(data);
+          const ms = data.timestamp && data.timestamp.toMillis ? data.timestamp.toMillis() : Date.now();
+          store.set(d.id, { id: d.id, data, ms, key: dayKey(new Date(ms)), pending: d.metadata.hasPendingWrites });
         });
 
-        initialized = true;
-        render(first);
-        markRead();
+        hasMore = snap.size >= pageLimit;
+        if (first) {
+          scheduleRender(mode === "bottom" ? { bottom: true } : { anchor: mode });
+          first = false;
+        } else scheduleRender();
+        scheduleMarkRead();
+      }, (err) => {
+        if (gen !== subGen) return;
+        console.error("Snapshot error:", err);
+        setSyncing(false);
+        refreshBtn.classList.add("err");
+        retryTimer = setTimeout(() => subscribe(mode === "bottom" ? "bottom" : null), retryDelay);
+        retryDelay = Math.min(retryDelay * 2, 15000);
       });
     }
 
-    /* ---------- Read receipts ---------- */
-    function markRead() {
-      if (!roomName || document.visibilityState !== "visible") return;
-      cache.forEach((m) => {
-        if (m.pending || m.data.sender === myName) return;
+    refreshBtn.addEventListener("click", () => {
+      if (!joined) return;
+      store = new Map();
+      pageLimit = PAGE; hasMore = false;
+      ui = { picker: null, details: null };
+      retryDelay = 1000;
+      subscribe("bottom");
+      scheduleRender({ bottom: true });
+    });
+
+    window.addEventListener("online", () => { if (joined && refreshBtn.classList.contains("err")) subscribe(null); });
+
+    const olderEl = document.createElement("button");
+    olderEl.className = "older-btn";
+    olderEl.textContent = "Load earlier messages";
+    olderEl.addEventListener("click", () => {
+      pageLimit += PAGE;
+      subscribe({ h: messagesBox.scrollHeight, t: messagesBox.scrollTop });
+    });
+
+    /* ---------- Read receipts (batched) ---------- */
+    let markTimer = null;
+    function scheduleMarkRead() { clearTimeout(markTimer); markTimer = setTimeout(markRead, 250); }
+    async function markRead() {
+      if (!joined || document.visibilityState !== "visible") return;
+      const ids = [];
+      store.forEach((m) => {
+        if (m.pending || m.data.sender === myName || marking.has(m.id)) return;
         if (m.data.readBy && m.data.readBy[myName]) return;
-        if (marking.has(m.id)) return;
-        marking.add(m.id);
-        updateDoc(doc(db, "chats", roomName, "messages", m.id), new FieldPath("readBy", myName), true)
-          .catch((e) => { marking.delete(m.id); console.error("Read receipt failed:", e); });
+        ids.push(m.id);
       });
+      if (!ids.length) return;
+      ids.forEach((id) => marking.add(id));
+      for (let i = 0; i < ids.length; i += 400) {
+        const batch = writeBatch(db);
+        ids.slice(i, i + 400).forEach((id) => batch.update(doc(db, "chats", roomName, "messages", id), new FieldPath("readBy", myName), true));
+        try { await batch.commit(); } catch (e) { console.error("Read receipt failed:", e); }
+      }
     }
-    document.addEventListener("visibilitychange", markRead);
-    window.addEventListener("focus", markRead);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { scheduleMarkRead(); scheduleRender(); } });
+    window.addEventListener("focus", scheduleMarkRead);
 
     /* ---------- Reactions ---------- */
     function cleanReactions(raw) {
       const out = [];
       if (raw && typeof raw === "object") {
-        Object.keys(raw).forEach((user) => {
-          if (Object.prototype.hasOwnProperty.call(REACTIONS, raw[user])) out.push([user, raw[user]]);
-        });
+        Object.keys(raw).forEach((u) => { if (Object.prototype.hasOwnProperty.call(REACTIONS, raw[u])) out.push([u, raw[u]]); });
       }
       return out;
     }
-
     async function react(m, emoji) {
       const current = m.data.reactions ? m.data.reactions[myName] : undefined;
       ui.picker = null;
-      render();
+      scheduleRender();
       try {
-        await updateDoc(
-          doc(db, "chats", roomName, "messages", m.id),
-          new FieldPath("reactions", myName),
-          current === emoji ? deleteField() : emoji
-        );
+        await updateDoc(doc(db, "chats", roomName, "messages", m.id), new FieldPath("reactions", myName), current === emoji ? deleteField() : emoji);
       } catch (e) {
         console.error("Reaction failed:", e);
         alert("Could not save reaction. Make sure your Firestore rules allow updating messages.");
@@ -309,114 +333,99 @@
     }
 
     /* ---------- Replies ---------- */
-    const replyBar = document.getElementById("replyBar");
-
     function setReply(m) {
       replyTarget = m;
-      document.getElementById("replyName").textContent = "Replying to " + (m.data.sender === myName ? "yourself" : m.data.sender);
-      document.getElementById("replyText").textContent = String(m.data.text || "").replace(/\s+/g, " ");
+      $("replyName").textContent = "Replying to " + (m.data.sender === myName ? "yourself" : m.data.sender);
+      $("replyText").textContent = String(m.data.text || "").replace(/\s+/g, " ");
       replyBar.style.display = "flex";
       msgInput.focus();
     }
-
-    function clearReply() {
-      replyTarget = null;
-      replyBar.style.display = "none";
-    }
-
+    function clearReply() { replyTarget = null; replyBar.style.display = "none"; }
     function jumpToMessage(id) {
-      const el = messagesBox.querySelector('[data-id="' + id + '"]');
-      if (!el) return;
+      const entry = rowEls.get(id);
+      if (!entry) return;
+      const el = entry.el;
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       el.classList.remove("flash");
       void el.offsetWidth;
       el.classList.add("flash");
       setTimeout(() => el.classList.remove("flash"), 1300);
     }
+    $("replyCancel").addEventListener("click", clearReply);
 
-    document.getElementById("replyCancel").addEventListener("click", clearReply);
+    /* ---------- Rendering (keyed, incremental) ---------- */
+    const readByOthers = (m) => !!m.data.readBy && Object.keys(m.data.readBy).some((u) => u !== myName && m.data.readBy[u]);
 
-    /* ---------- Render ---------- */
+    function signature(m) {
+      const rt = m.data.replyTo;
+      return JSON.stringify([
+        m.data.sender, m.data.text, m.ms, m.pending, readByOthers(m),
+        cleanReactions(m.data.reactions), rt ? [rt.id, rt.sender, rt.text] : 0,
+        ui.picker === m.id, ui.details === m.id
+      ]);
+    }
+
     function buildRow(m) {
       const isMe = m.data.sender === myName;
       const row = document.createElement("div");
-      row.classList.add("row", isMe ? "me" : "them");
+      row.className = "row " + (isMe ? "me" : "them");
+      row.dataset.id = m.id;
 
       const line = document.createElement("div");
-      line.classList.add("line");
+      line.className = "line";
 
       const bubble = document.createElement("div");
-      bubble.classList.add("msg", isMe ? "outgoing" : "incoming");
+      bubble.className = "msg " + (isMe ? "outgoing" : "incoming");
 
       const label = document.createElement("span");
-      label.classList.add("sender-label");
+      label.className = "sender-label";
       label.textContent = m.data.sender;
-
-      const body = document.createElement("span");
-      body.classList.add("body");
-      body.textContent = m.data.text;
-
-      const meta = document.createElement("span");
-      meta.classList.add("time-label");
-      meta.textContent = timeFmt.format(m.date);
-
-      if (isMe) {
-        const readByOthers = m.data.readBy && Object.keys(m.data.readBy).some((u) => u !== myName && m.data.readBy[u]);
-        const tick = document.createElement("span");
-        tick.classList.add("tick");
-        if (m.pending) {
-          tick.textContent = "🕓";
-        } else if (readByOthers) {
-          tick.textContent = "✓✓";
-          tick.classList.add("read");
-          tick.title = "Read";
-        } else {
-          tick.textContent = "✓";
-          tick.title = "Sent";
-        }
-        meta.appendChild(tick);
-      }
-
-      row.dataset.id = m.id;
       bubble.appendChild(label);
 
       const rt = m.data.replyTo;
       if (rt && typeof rt === "object" && rt.text !== undefined) {
         const quote = document.createElement("div");
-        quote.classList.add("quote");
-        const qn = document.createElement("span");
-        qn.classList.add("q-name");
-        qn.textContent = rt.sender || "";
-        const qt = document.createElement("span");
-        qt.classList.add("q-text");
-        qt.textContent = rt.text;
-        quote.appendChild(qn);
-        quote.appendChild(qt);
+        quote.className = "quote";
+        const qn = document.createElement("span"); qn.className = "q-name"; qn.textContent = rt.sender || "";
+        const qt = document.createElement("span"); qt.className = "q-text"; qt.textContent = rt.text;
+        quote.appendChild(qn); quote.appendChild(qt);
         quote.title = "Go to original message";
         quote.addEventListener("click", () => { if (rt.id) jumpToMessage(rt.id); });
         bubble.appendChild(quote);
       }
 
+      const body = document.createElement("span");
+      body.className = "body";
+      body.textContent = m.data.text;
       bubble.appendChild(body);
+
+      const meta = document.createElement("span");
+      meta.className = "time-label";
+      meta.textContent = timeFmt.format(new Date(m.ms));
+      if (isMe) {
+        const tick = document.createElement("span");
+        tick.className = "tick";
+        if (m.pending) tick.textContent = "🕓";
+        else if (readByOthers(m)) { tick.textContent = "✓✓"; tick.classList.add("read"); tick.title = "Read"; }
+        else { tick.textContent = "✓"; tick.title = "Sent"; }
+        meta.appendChild(tick);
+      }
       bubble.appendChild(meta);
 
       const reactBtn = document.createElement("button");
-      reactBtn.classList.add("react-btn");
+      reactBtn.className = "react-btn";
       reactBtn.textContent = "☺";
       reactBtn.title = "React";
-      reactBtn.addEventListener("click", () => {
-        ui.picker = ui.picker === m.id ? null : m.id;
-        render();
-      });
+      reactBtn.addEventListener("click", () => { ui.picker = ui.picker === m.id ? null : m.id; scheduleRender(); });
 
       const replyBtn = document.createElement("button");
-      replyBtn.classList.add("react-btn");
+      replyBtn.className = "react-btn";
       replyBtn.textContent = "↵";
       replyBtn.title = "Reply";
       replyBtn.addEventListener("click", () => setReply(m));
 
       const actions = document.createElement("div");
-      actions.classList.add("actions");
+      actions.className = "actions";
       actions.appendChild(reactBtn);
       actions.appendChild(replyBtn);
 
@@ -426,27 +435,23 @@
 
       const reactions = cleanReactions(m.data.reactions);
       if (reactions.length) {
-        const emojis = [...new Set(reactions.map((r) => r[1]))];
         const chip = document.createElement("button");
-        chip.classList.add("chip");
-        chip.textContent = emojis.join("") + (reactions.length > 1 ? " " + reactions.length : "");
+        chip.className = "chip";
+        chip.textContent = [...new Set(reactions.map((r) => r[1]))].join("") + (reactions.length > 1 ? " " + reactions.length : "");
         chip.title = "See who reacted";
-        chip.addEventListener("click", () => {
-          ui.details = ui.details === m.id ? null : m.id;
-          render();
-        });
+        chip.addEventListener("click", () => { ui.details = ui.details === m.id ? null : m.id; scheduleRender(); });
         row.appendChild(chip);
       }
 
       if (ui.picker === m.id) {
         const picker = document.createElement("div");
-        picker.classList.add("picker");
+        picker.className = "picker";
         const mine = m.data.reactions ? m.data.reactions[myName] : null;
         Object.keys(REACTIONS).forEach((emoji) => {
           const b = document.createElement("button");
           b.textContent = emoji;
           b.title = REACTIONS[emoji];
-          if (mine === emoji) b.classList.add("mine");
+          if (mine === emoji) b.className = "mine";
           b.addEventListener("click", () => react(m, emoji));
           picker.appendChild(b);
         });
@@ -455,47 +460,78 @@
 
       if (ui.details === m.id && reactions.length) {
         const box = document.createElement("div");
-        box.classList.add("details");
+        box.className = "details";
         const title = document.createElement("div");
-        title.classList.add("d-title");
+        title.className = "d-title";
         title.textContent = "Reactions";
         box.appendChild(title);
         reactions.forEach(([user, emoji]) => {
           const r = document.createElement("div");
-          r.classList.add("d-row");
-          const e = document.createElement("span");
-          e.classList.add("d-emoji");
-          e.textContent = emoji;
-          const n = document.createElement("span");
-          n.textContent = user + (user === myName ? " (you)" : "");
-          r.appendChild(e);
-          r.appendChild(n);
+          r.className = "d-row";
+          const e = document.createElement("span"); e.className = "d-emoji"; e.textContent = emoji;
+          const n = document.createElement("span"); n.textContent = user + (user === myName ? " (you)" : "");
+          r.appendChild(e); r.appendChild(n);
           box.appendChild(r);
         });
         row.appendChild(box);
       }
-
       return row;
     }
 
-    function render(forceScroll) {
+    // Coalesce all render requests into one per animation frame
+    let renderQueued = false, pendingOpts = {};
+    function scheduleRender(opts) {
+      if (opts) Object.assign(pendingOpts, opts);
+      if (renderQueued) return;
+      renderQueued = true;
+      requestAnimationFrame(renderNow);
+    }
+
+    const byOrder = (a, b) => (a.pending !== b.pending ? (a.pending ? 1 : -1) : a.ms - b.ms || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+    function renderNow() {
+      renderQueued = false;
+      const opts = pendingOpts; pendingOpts = {};
       const nearBottom = messagesBox.scrollHeight - messagesBox.scrollTop - messagesBox.clientHeight < 80;
-      messagesBox.innerHTML = "";
+
+      const items = Array.from(store.values()).sort(byOrder);
+      const desired = [];
+      const usedRows = new Set(), usedSeps = new Set();
+      if (hasMore) desired.push(olderEl);
+
       let lastKey = null;
-
-      cache.forEach((m) => {
-        const key = dayKey(m.date);
-        if (key !== lastKey) {
-          const sep = document.createElement("div");
-          sep.classList.add("date-sep");
-          sep.textContent = dayLabel(m.date);
-          messagesBox.appendChild(sep);
-          lastKey = key;
+      for (const m of items) {
+        if (m.key !== lastKey) {
+          let sep = sepEls.get(m.key);
+          if (!sep) { sep = document.createElement("div"); sep.className = "date-sep"; sepEls.set(m.key, sep); }
+          const text = dayLabel(m.key, m.ms);
+          if (sep.textContent !== text) sep.textContent = text;
+          usedSeps.add(m.key);
+          desired.push(sep);
+          lastKey = m.key;
         }
-        messagesBox.appendChild(buildRow(m));
-      });
+        const sig = signature(m);
+        let entry = rowEls.get(m.id);
+        if (!entry || entry.sig !== sig) { entry = { el: buildRow(m), sig }; rowEls.set(m.id, entry); }
+        usedRows.add(m.id);
+        desired.push(entry.el);
+      }
 
-      if (forceScroll || nearBottom) messagesBox.scrollTop = messagesBox.scrollHeight;
+      // Minimal DOM reconciliation
+      const want = new Set(desired);
+      let cur = messagesBox.firstChild;
+      for (const node of desired) {
+        while (cur && cur !== node && !want.has(cur)) { const n = cur.nextSibling; messagesBox.removeChild(cur); cur = n; }
+        if (node === cur) cur = cur.nextSibling;
+        else messagesBox.insertBefore(node, cur);
+      }
+      while (cur) { const n = cur.nextSibling; messagesBox.removeChild(cur); cur = n; }
+
+      for (const id of rowEls.keys()) if (!usedRows.has(id)) rowEls.delete(id);
+      for (const k of sepEls.keys()) if (!usedSeps.has(k)) sepEls.delete(k);
+
+      if (opts.anchor) messagesBox.scrollTop = opts.anchor.t + (messagesBox.scrollHeight - opts.anchor.h);
+      else if (opts.bottom || nearBottom) messagesBox.scrollTop = messagesBox.scrollHeight;
     }
 
     /* ---------- Sending ---------- */
@@ -512,23 +548,16 @@
       msgInput.focus();
 
       const target = replyTarget;
-      const payload = {
-        sender: myName,
-        text: text,
-        timestamp: serverTimestamp()
-      };
+      const payload = { sender: myName, text: text, timestamp: serverTimestamp() };
       if (target) {
-        payload.replyTo = {
-          id: target.id,
-          sender: target.data.sender,
-          text: String(target.data.text || "").slice(0, 120)
-        };
+        payload.replyTo = { id: target.id, sender: target.data.sender, text: String(target.data.text || "").slice(0, 120) };
       }
       clearReply();
 
       try {
-        await addDoc(collection(db, "chats", roomName, "messages"), payload);
-        setTimeout(() => { messagesBox.scrollTop = messagesBox.scrollHeight; }, 50);
+        const p = addDoc(collection(db, "chats", roomName, "messages"), payload); // shows instantly via local write
+        scheduleRender({ bottom: true });
+        await p;
       } catch (e) {
         console.error("Send failed:", e);
         if (!msgInput.value) { msgInput.value = text; autoGrow(); }
@@ -537,15 +566,12 @@
       }
     }
 
-    document.getElementById("sendBtn").addEventListener("click", sendMessage);
+    $("sendBtn").addEventListener("click", sendMessage);
     msgInput.addEventListener("input", autoGrow);
     msgInput.addEventListener("keydown", (e) => {
       if (e.key === "Escape") clearReply();
       // Enter inserts a new line (default). Ctrl+Enter / Cmd+Enter sends.
-      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        sendMessage();
-      }
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendMessage(); }
     });
   </script>
 </body>
