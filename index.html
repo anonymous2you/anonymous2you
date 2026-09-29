@@ -38,6 +38,18 @@
 
     .react-btn { padding: 2px 6px; font-size: 0.95rem; background: transparent; color: #94a3b8; border-radius: 999px; opacity: 0.55; line-height: 1.2; }
     .react-btn:hover { background: #334155; opacity: 1; }
+    .actions { display: flex; align-items: center; flex-shrink: 0; }
+    .quote { margin-bottom: 6px; padding: 4px 8px; border-left: 3px solid #7dd3fc; background: rgba(0,0,0,0.22); border-radius: 4px; font-size: 0.78rem; cursor: pointer; }
+    .quote .q-name { display: block; font-weight: 600; opacity: 0.9; font-size: 0.7rem; }
+    .quote .q-text { display: block; opacity: 0.8; white-space: pre-wrap; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+    .row.flash .msg { animation: flash 1.2s ease; }
+    @keyframes flash { 0%, 60% { box-shadow: 0 0 0 3px #38bdf8; } 100% { box-shadow: 0 0 0 0 transparent; } }
+    .reply-bar { display: none; align-items: center; gap: 8px; padding: 8px 12px; background: #0f172a; border-top: 1px solid #334155; }
+    .reply-bar .r-info { flex: 1; min-width: 0; border-left: 3px solid #38bdf8; padding-left: 8px; font-size: 0.78rem; }
+    .reply-bar .r-name { display: block; color: #7dd3fc; font-weight: 600; font-size: 0.72rem; }
+    .reply-bar .r-text { display: block; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .reply-bar button { padding: 2px 8px; background: transparent; color: #94a3b8; font-size: 1.1rem; }
+    .reply-bar button:hover { background: #334155; }
     .chip { margin-top: -6px; padding: 1px 8px; font-size: 0.78rem; font-weight: 500; background: #0f172a; border: 1px solid #475569; color: #f8fafc; border-radius: 999px; z-index: 1; }
     .chip:hover { background: #1e293b; }
     .picker { display: flex; gap: 2px; margin-top: 4px; padding: 4px 6px; background: #0f172a; border: 1px solid #475569; border-radius: 999px; }
@@ -78,6 +90,13 @@
     <!-- Chat Screen -->
     <div id="chatArea">
       <div class="messages" id="messagesBox"></div>
+      <div class="reply-bar" id="replyBar">
+        <div class="r-info">
+          <span class="r-name" id="replyName"></span>
+          <span class="r-text" id="replyText"></span>
+        </div>
+        <button id="replyCancel" title="Cancel reply">&times;</button>
+      </div>
       <div class="chat-input-bar">
         <textarea id="msgInput" rows="1" placeholder="Type a message..."></textarea>
         <button id="sendBtn">Send</button>
@@ -118,6 +137,7 @@
     let initialized = false;
     let ui = { picker: null, details: null };
     const marking = new Set();
+    let replyTarget = null;   // cache item currently being replied to
 
     const loginPanel = document.getElementById("loginPanel");
     const chatArea = document.getElementById("chatArea");
@@ -288,6 +308,34 @@
       }
     }
 
+    /* ---------- Replies ---------- */
+    const replyBar = document.getElementById("replyBar");
+
+    function setReply(m) {
+      replyTarget = m;
+      document.getElementById("replyName").textContent = "Replying to " + (m.data.sender === myName ? "yourself" : m.data.sender);
+      document.getElementById("replyText").textContent = String(m.data.text || "").replace(/\s+/g, " ");
+      replyBar.style.display = "flex";
+      msgInput.focus();
+    }
+
+    function clearReply() {
+      replyTarget = null;
+      replyBar.style.display = "none";
+    }
+
+    function jumpToMessage(id) {
+      const el = messagesBox.querySelector('[data-id="' + id + '"]');
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.remove("flash");
+      void el.offsetWidth;
+      el.classList.add("flash");
+      setTimeout(() => el.classList.remove("flash"), 1300);
+    }
+
+    document.getElementById("replyCancel").addEventListener("click", clearReply);
+
     /* ---------- Render ---------- */
     function buildRow(m) {
       const isMe = m.data.sender === myName;
@@ -329,7 +377,26 @@
         meta.appendChild(tick);
       }
 
+      row.dataset.id = m.id;
       bubble.appendChild(label);
+
+      const rt = m.data.replyTo;
+      if (rt && typeof rt === "object" && rt.text !== undefined) {
+        const quote = document.createElement("div");
+        quote.classList.add("quote");
+        const qn = document.createElement("span");
+        qn.classList.add("q-name");
+        qn.textContent = rt.sender || "";
+        const qt = document.createElement("span");
+        qt.classList.add("q-text");
+        qt.textContent = rt.text;
+        quote.appendChild(qn);
+        quote.appendChild(qt);
+        quote.title = "Go to original message";
+        quote.addEventListener("click", () => { if (rt.id) jumpToMessage(rt.id); });
+        bubble.appendChild(quote);
+      }
+
       bubble.appendChild(body);
       bubble.appendChild(meta);
 
@@ -342,8 +409,19 @@
         render();
       });
 
-      if (isMe) { line.appendChild(reactBtn); line.appendChild(bubble); }
-      else { line.appendChild(bubble); line.appendChild(reactBtn); }
+      const replyBtn = document.createElement("button");
+      replyBtn.classList.add("react-btn");
+      replyBtn.textContent = "↵";
+      replyBtn.title = "Reply";
+      replyBtn.addEventListener("click", () => setReply(m));
+
+      const actions = document.createElement("div");
+      actions.classList.add("actions");
+      actions.appendChild(reactBtn);
+      actions.appendChild(replyBtn);
+
+      if (isMe) { line.appendChild(actions); line.appendChild(bubble); }
+      else { line.appendChild(bubble); line.appendChild(actions); }
       row.appendChild(line);
 
       const reactions = cleanReactions(m.data.reactions);
@@ -433,16 +511,28 @@
       autoGrow();
       msgInput.focus();
 
+      const target = replyTarget;
+      const payload = {
+        sender: myName,
+        text: text,
+        timestamp: serverTimestamp()
+      };
+      if (target) {
+        payload.replyTo = {
+          id: target.id,
+          sender: target.data.sender,
+          text: String(target.data.text || "").slice(0, 120)
+        };
+      }
+      clearReply();
+
       try {
-        await addDoc(collection(db, "chats", roomName, "messages"), {
-          sender: myName,
-          text: text,
-          timestamp: serverTimestamp()
-        });
+        await addDoc(collection(db, "chats", roomName, "messages"), payload);
         setTimeout(() => { messagesBox.scrollTop = messagesBox.scrollHeight; }, 50);
       } catch (e) {
         console.error("Send failed:", e);
         if (!msgInput.value) { msgInput.value = text; autoGrow(); }
+        if (target) setReply(target);
         alert("Message could not be sent. Please try again.");
       }
     }
@@ -450,6 +540,7 @@
     document.getElementById("sendBtn").addEventListener("click", sendMessage);
     msgInput.addEventListener("input", autoGrow);
     msgInput.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") clearReply();
       // Enter inserts a new line (default). Ctrl+Enter / Cmd+Enter sends.
       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
