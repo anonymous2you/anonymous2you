@@ -13,22 +13,46 @@
     .panel { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
     .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
     label { font-size: 0.85rem; color: #94a3b8; }
-    input[type="text"] { padding: 10px 14px; border-radius: 6px; border: 1px solid #475569; background-color: #0f172a; color: #f8fafc; font-size: 0.9rem; outline: none; }
-    input[type="text"]:focus { border-color: #38bdf8; }
+    input[type="text"], textarea { padding: 10px 14px; border-radius: 6px; border: 1px solid #475569; background-color: #0f172a; color: #f8fafc; font-size: 0.9rem; outline: none; }
+    input[type="text"]:focus, textarea:focus { border-color: #38bdf8; }
     button { padding: 12px; border: none; border-radius: 6px; background-color: #2563eb; color: #ffffff; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
     button:hover { background-color: #1d4ed8; }
-    
+
     #chatArea { flex: 1; display: none; flex-direction: column; overflow: hidden; }
     .messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-    .msg { max-width: 80%; padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; line-height: 1.4; word-break: break-word; }
-    .msg.incoming { align-self: flex-start; background-color: #334155; color: #f8fafc; }
-    .msg.outgoing { align-self: flex-end; background-color: #2563eb; color: #ffffff; }
+
+    .date-sep { align-self: center; font-size: 0.72rem; color: #94a3b8; background: #0f172a; padding: 3px 12px; border-radius: 999px; margin: 6px 0; }
+
+    .row { display: flex; flex-direction: column; max-width: 85%; }
+    .row.me { align-self: flex-end; align-items: flex-end; }
+    .row.them { align-self: flex-start; align-items: flex-start; }
+    .line { display: flex; align-items: center; gap: 6px; max-width: 100%; }
+    .msg { padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; line-height: 1.4; word-break: break-word; min-width: 0; }
+    .msg.incoming { background-color: #334155; color: #f8fafc; }
+    .msg.outgoing { background-color: #2563eb; color: #ffffff; }
     .msg .sender-label { font-size: 0.7rem; opacity: 0.75; margin-bottom: 2px; display: block; }
-    .msg .time-label { font-size: 0.65rem; opacity: 0.6; margin-top: 4px; display: block; text-align: right; }
-    
-    .chat-input-bar { padding: 12px; background-color: #0f172a; border-top: 1px solid #334155; display: flex; gap: 8px; }
-    .chat-input-bar input { flex: 1; }
+    .msg .body { display: block; white-space: pre-wrap; }
+    .msg .time-label { font-size: 0.65rem; opacity: 0.75; margin-top: 4px; display: block; text-align: right; }
+    .tick { margin-left: 4px; letter-spacing: -2px; }
+    .tick.read { color: #7dd3fc; opacity: 1; font-weight: 700; }
+
+    .react-btn { padding: 2px 6px; font-size: 0.95rem; background: transparent; color: #94a3b8; border-radius: 999px; opacity: 0.55; line-height: 1.2; }
+    .react-btn:hover { background: #334155; opacity: 1; }
+    .chip { margin-top: -6px; padding: 1px 8px; font-size: 0.78rem; font-weight: 500; background: #0f172a; border: 1px solid #475569; color: #f8fafc; border-radius: 999px; z-index: 1; }
+    .chip:hover { background: #1e293b; }
+    .picker { display: flex; gap: 2px; margin-top: 4px; padding: 4px 6px; background: #0f172a; border: 1px solid #475569; border-radius: 999px; }
+    .picker button { padding: 2px 5px; font-size: 1.3rem; background: transparent; border-radius: 999px; }
+    .picker button:hover { background: #334155; transform: scale(1.2); }
+    .picker button.mine { background: #334155; }
+    .details { margin-top: 4px; padding: 8px 10px; background: #0f172a; border: 1px solid #475569; border-radius: 8px; font-size: 0.8rem; min-width: 170px; }
+    .details .d-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+    .details .d-emoji { font-size: 1.1rem; }
+    .details .d-title { color: #94a3b8; font-size: 0.7rem; margin-bottom: 4px; }
+
+    .chat-input-bar { padding: 12px 12px 4px; background-color: #0f172a; border-top: 1px solid #334155; display: flex; gap: 8px; align-items: flex-end; }
+    .chat-input-bar textarea { flex: 1; resize: none; max-height: 120px; line-height: 1.4; }
     .chat-input-bar button { padding: 10px 16px; }
+    .hint { padding: 2px 14px 8px; font-size: 0.68rem; color: #64748b; background-color: #0f172a; }
   </style>
 </head>
 <body>
@@ -55,15 +79,16 @@
     <div id="chatArea">
       <div class="messages" id="messagesBox"></div>
       <div class="chat-input-bar">
-        <input type="text" id="msgInput" placeholder="Type a message..." />
+        <textarea id="msgInput" rows="1" placeholder="Type a message..."></textarea>
         <button id="sendBtn">Send</button>
       </div>
+      <div class="hint">Enter = new line &middot; Ctrl+Enter = send</div>
     </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, addDoc, updateDoc, deleteField, FieldPath, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyA2sIW2TFBC3J2usxPGZAErBDikxNndGVU",
@@ -77,8 +102,22 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    const TZ = "Asia/Dhaka";
+    const REACTIONS = {
+      "❤️": "Love",
+      "😂": "Haha",
+      "😮": "Wow",
+      "😢": "Sad",
+      "😡": "Angry",
+      "👍": "Like"
+    };
+
     let myName = "";
     let roomName = "";
+    let cache = [];           // [{ id, data, date, pending }]
+    let initialized = false;
+    let ui = { picker: null, details: null };
+    const marking = new Set();
 
     const loginPanel = document.getElementById("loginPanel");
     const chatArea = document.getElementById("chatArea");
@@ -90,10 +129,70 @@
 
     const savedName = localStorage.getItem("anon_username");
     const savedRoom = localStorage.getItem("anon_room");
-    
+
     if (savedName) usernameInput.value = savedName;
     if (savedRoom) roomInput.value = savedRoom;
 
+    /* ---------- Date helpers (Asia/Dhaka, GMT+6) ---------- */
+    const dayFmt = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" });
+    const longDayFmt = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, weekday: "short", day: "numeric", month: "short", year: "numeric" });
+    const timeFmt = new Intl.DateTimeFormat([], { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
+    const dayKey = (d) => dayFmt.format(d);
+
+    function dayLabel(d) {
+      const k = dayKey(d);
+      if (k === dayKey(new Date())) return "Today";
+      if (k === dayKey(new Date(Date.now() - 86400000))) return "Yesterday";
+      return longDayFmt.format(d);
+    }
+
+    /* ---------- Sound + notifications ---------- */
+    let audioCtx = null;
+    function ensureAudio() {
+      try {
+        if (!audioCtx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) audioCtx = new AC();
+        }
+        if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+      } catch (e) { /* ignore */ }
+    }
+
+    function playSound() {
+      try {
+        ensureAudio();
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        [[880, 0], [1175, 0.13]].forEach(([freq, offset]) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "sine";
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.0001, now + offset);
+          gain.gain.exponentialRampToValueAtTime(0.25, now + offset + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.18);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + offset);
+          osc.stop(now + offset + 0.2);
+        });
+      } catch (e) { /* ignore */ }
+    }
+
+    function notifyNewMessage(data) {
+      playSound();
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
+      try {
+        const n = new Notification(`${data.sender} · Room ${roomName}`, {
+          body: String(data.text || "").slice(0, 160),
+          tag: "anon-chat-" + roomName,
+          renotify: true
+        });
+        n.onclick = () => { window.focus(); n.close(); };
+      } catch (e) { /* some mobile browsers only allow service-worker notifications */ }
+    }
+
+    /* ---------- Join ---------- */
     document.getElementById("joinBtn").addEventListener("click", () => {
       myName = usernameInput.value.trim();
       roomName = roomInput.value.trim().toLowerCase();
@@ -106,6 +205,11 @@
       localStorage.setItem("anon_username", myName);
       localStorage.setItem("anon_room", roomName);
 
+      ensureAudio();
+      if ("Notification" in window && Notification.permission === "default") {
+        try { Notification.requestPermission(); } catch (e) { /* ignore */ }
+      }
+
       loginPanel.style.display = "none";
       chatArea.style.display = "flex";
       headerTitle.innerText = `Room: ${roomName}`;
@@ -113,62 +217,245 @@
       loadMessages();
     });
 
+    /* ---------- Load / listen ---------- */
     function loadMessages() {
       const messagesRef = collection(db, "chats", roomName, "messages");
       const q = query(messagesRef, orderBy("timestamp", "asc"));
 
-      onSnapshot(q, (snapshot) => {
-        messagesBox.innerHTML = ""; 
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          displayMessage(data);
+      onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
+        const first = !initialized;
+
+        if (!first) {
+          snapshot.docChanges().forEach((ch) => {
+            if (ch.type === "added" && !ch.doc.metadata.hasPendingWrites) {
+              const d = ch.doc.data();
+              if (d.sender !== myName) notifyNewMessage(d);
+            }
+          });
+        }
+
+        cache = snapshot.docs.map((d) => {
+          const data = d.data({ serverTimestamps: "estimate" });
+          const ts = data.timestamp && data.timestamp.toDate ? data.timestamp.toDate() : new Date();
+          return { id: d.id, data, date: ts, pending: d.metadata.hasPendingWrites };
         });
-        messagesBox.scrollTop = messagesBox.scrollHeight;
+
+        initialized = true;
+        render(first);
+        markRead();
       });
+    }
+
+    /* ---------- Read receipts ---------- */
+    function markRead() {
+      if (!roomName || document.visibilityState !== "visible") return;
+      cache.forEach((m) => {
+        if (m.pending || m.data.sender === myName) return;
+        if (m.data.readBy && m.data.readBy[myName]) return;
+        if (marking.has(m.id)) return;
+        marking.add(m.id);
+        updateDoc(doc(db, "chats", roomName, "messages", m.id), new FieldPath("readBy", myName), true)
+          .catch((e) => { marking.delete(m.id); console.error("Read receipt failed:", e); });
+      });
+    }
+    document.addEventListener("visibilitychange", markRead);
+    window.addEventListener("focus", markRead);
+
+    /* ---------- Reactions ---------- */
+    function cleanReactions(raw) {
+      const out = [];
+      if (raw && typeof raw === "object") {
+        Object.keys(raw).forEach((user) => {
+          if (Object.prototype.hasOwnProperty.call(REACTIONS, raw[user])) out.push([user, raw[user]]);
+        });
+      }
+      return out;
+    }
+
+    async function react(m, emoji) {
+      const current = m.data.reactions ? m.data.reactions[myName] : undefined;
+      ui.picker = null;
+      render();
+      try {
+        await updateDoc(
+          doc(db, "chats", roomName, "messages", m.id),
+          new FieldPath("reactions", myName),
+          current === emoji ? deleteField() : emoji
+        );
+      } catch (e) {
+        console.error("Reaction failed:", e);
+        alert("Could not save reaction. Make sure your Firestore rules allow updating messages.");
+      }
+    }
+
+    /* ---------- Render ---------- */
+    function buildRow(m) {
+      const isMe = m.data.sender === myName;
+      const row = document.createElement("div");
+      row.classList.add("row", isMe ? "me" : "them");
+
+      const line = document.createElement("div");
+      line.classList.add("line");
+
+      const bubble = document.createElement("div");
+      bubble.classList.add("msg", isMe ? "outgoing" : "incoming");
+
+      const label = document.createElement("span");
+      label.classList.add("sender-label");
+      label.textContent = m.data.sender;
+
+      const body = document.createElement("span");
+      body.classList.add("body");
+      body.textContent = m.data.text;
+
+      const meta = document.createElement("span");
+      meta.classList.add("time-label");
+      meta.textContent = timeFmt.format(m.date);
+
+      if (isMe) {
+        const readByOthers = m.data.readBy && Object.keys(m.data.readBy).some((u) => u !== myName && m.data.readBy[u]);
+        const tick = document.createElement("span");
+        tick.classList.add("tick");
+        if (m.pending) {
+          tick.textContent = "🕓";
+        } else if (readByOthers) {
+          tick.textContent = "✓✓";
+          tick.classList.add("read");
+          tick.title = "Read";
+        } else {
+          tick.textContent = "✓";
+          tick.title = "Sent";
+        }
+        meta.appendChild(tick);
+      }
+
+      bubble.appendChild(label);
+      bubble.appendChild(body);
+      bubble.appendChild(meta);
+
+      const reactBtn = document.createElement("button");
+      reactBtn.classList.add("react-btn");
+      reactBtn.textContent = "☺";
+      reactBtn.title = "React";
+      reactBtn.addEventListener("click", () => {
+        ui.picker = ui.picker === m.id ? null : m.id;
+        render();
+      });
+
+      if (isMe) { line.appendChild(reactBtn); line.appendChild(bubble); }
+      else { line.appendChild(bubble); line.appendChild(reactBtn); }
+      row.appendChild(line);
+
+      const reactions = cleanReactions(m.data.reactions);
+      if (reactions.length) {
+        const emojis = [...new Set(reactions.map((r) => r[1]))];
+        const chip = document.createElement("button");
+        chip.classList.add("chip");
+        chip.textContent = emojis.join("") + (reactions.length > 1 ? " " + reactions.length : "");
+        chip.title = "See who reacted";
+        chip.addEventListener("click", () => {
+          ui.details = ui.details === m.id ? null : m.id;
+          render();
+        });
+        row.appendChild(chip);
+      }
+
+      if (ui.picker === m.id) {
+        const picker = document.createElement("div");
+        picker.classList.add("picker");
+        const mine = m.data.reactions ? m.data.reactions[myName] : null;
+        Object.keys(REACTIONS).forEach((emoji) => {
+          const b = document.createElement("button");
+          b.textContent = emoji;
+          b.title = REACTIONS[emoji];
+          if (mine === emoji) b.classList.add("mine");
+          b.addEventListener("click", () => react(m, emoji));
+          picker.appendChild(b);
+        });
+        row.appendChild(picker);
+      }
+
+      if (ui.details === m.id && reactions.length) {
+        const box = document.createElement("div");
+        box.classList.add("details");
+        const title = document.createElement("div");
+        title.classList.add("d-title");
+        title.textContent = "Reactions";
+        box.appendChild(title);
+        reactions.forEach(([user, emoji]) => {
+          const r = document.createElement("div");
+          r.classList.add("d-row");
+          const e = document.createElement("span");
+          e.classList.add("d-emoji");
+          e.textContent = emoji;
+          const n = document.createElement("span");
+          n.textContent = user + (user === myName ? " (you)" : "");
+          r.appendChild(e);
+          r.appendChild(n);
+          box.appendChild(r);
+        });
+        row.appendChild(box);
+      }
+
+      return row;
+    }
+
+    function render(forceScroll) {
+      const nearBottom = messagesBox.scrollHeight - messagesBox.scrollTop - messagesBox.clientHeight < 80;
+      messagesBox.innerHTML = "";
+      let lastKey = null;
+
+      cache.forEach((m) => {
+        const key = dayKey(m.date);
+        if (key !== lastKey) {
+          const sep = document.createElement("div");
+          sep.classList.add("date-sep");
+          sep.textContent = dayLabel(m.date);
+          messagesBox.appendChild(sep);
+          lastKey = key;
+        }
+        messagesBox.appendChild(buildRow(m));
+      });
+
+      if (forceScroll || nearBottom) messagesBox.scrollTop = messagesBox.scrollHeight;
+    }
+
+    /* ---------- Sending ---------- */
+    function autoGrow() {
+      msgInput.style.height = "auto";
+      msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + "px";
     }
 
     async function sendMessage() {
       const text = msgInput.value.trim();
       if (!text) return;
       msgInput.value = "";
+      autoGrow();
+      msgInput.focus();
 
-      await addDoc(collection(db, "chats", roomName, "messages"), {
-        sender: myName,
-        text: text,
-        timestamp: serverTimestamp()
-      });
+      try {
+        await addDoc(collection(db, "chats", roomName, "messages"), {
+          sender: myName,
+          text: text,
+          timestamp: serverTimestamp()
+        });
+        setTimeout(() => { messagesBox.scrollTop = messagesBox.scrollHeight; }, 50);
+      } catch (e) {
+        console.error("Send failed:", e);
+        if (!msgInput.value) { msgInput.value = text; autoGrow(); }
+        alert("Message could not be sent. Please try again.");
+      }
     }
 
     document.getElementById("sendBtn").addEventListener("click", sendMessage);
+    msgInput.addEventListener("input", autoGrow);
     msgInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") sendMessage();
-    });
-
-    function displayMessage(data) {
-      const isMe = data.sender === myName;
-      const bubble = document.createElement("div");
-      bubble.classList.add("msg", isMe ? "outgoing" : "incoming");
-
-      const label = document.createElement("span");
-      label.classList.add("sender-label");
-      label.innerText = data.sender;
-
-      const body = document.createElement("span");
-      body.innerText = data.text;
-
-      bubble.appendChild(label);
-      bubble.appendChild(body);
-
-      if (data.timestamp) {
-        const timeLabel = document.createElement("span");
-        timeLabel.classList.add("time-label");
-        const date = data.timestamp.toDate();
-        timeLabel.innerText = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        bubble.appendChild(timeLabel);
+      // Enter inserts a new line (default). Ctrl+Enter / Cmd+Enter sends.
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        sendMessage();
       }
-
-      messagesBox.appendChild(bubble);
-    }
+    });
   </script>
 </body>
 </html>
