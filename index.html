@@ -1,335 +1,174 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Anonymous Chat</title>
-    <style>
-        :root {
-            --bg-color: #0f172a;
-            --chat-bg: #1e293b;
-            --primary: #3b82f6;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --msg-mine: #2563eb;
-            --msg-other: #334155;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; }
-        
-        /* Login Screen */
-        #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; }
-        .login-container { background-color: var(--chat-bg); padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .login-container h2 { text-align: center; margin-bottom: 20px; }
-        input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #475569; background: var(--bg-color); color: white; font-size: 16px; }
-        button.primary-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; background: var(--primary); color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
-        
-        /* Chat Screen */
-        #chat-screen { display: none; flex-direction: column; height: 100vh; }
-        #chat-header { background-color: var(--chat-bg); padding: 15px 20px; font-size: 18px; font-weight: bold; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; }
-        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        
-        /* Date Divider */
-        .date-divider { text-align: center; margin: 20px 0 10px 0; }
-        .date-divider span { background-color: var(--chat-bg); color: var(--text-muted); padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: 500; }
-        
-        /* Messages */
-        .msg-wrapper { display: flex; flex-direction: column; max-width: 75%; position: relative; }
-        .msg-wrapper.mine { align-self: flex-end; align-items: flex-end; }
-        .msg-wrapper.other { align-self: flex-start; align-items: flex-start; }
-        .sender-name { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; padding: 0 4px; }
-        
-        .msg-bubble { padding: 10px 15px; border-radius: 15px; position: relative; word-wrap: break-word; white-space: pre-wrap; line-height: 1.4; }
-        .mine .msg-bubble { background-color: var(--msg-mine); border-bottom-right-radius: 2px; }
-        .other .msg-bubble { background-color: var(--msg-other); border-bottom-left-radius: 2px; }
-        
-        /* Time and Read Status */
-        .time-and-status { display: flex; justify-content: flex-end; align-items: center; gap: 4px; margin-top: 5px; }
-        .msg-time { font-size: 10px; color: rgba(255,255,255,0.6); }
-        .msg-status { font-size: 11px; font-weight: bold; }
-        .msg-status.sent { color: #cbd5e1; } /* Light grey for single tick */
-        .msg-status.read { color: #38bdf8; } /* Light blue for double tick */
-        
-        /* Reactions System */
-        .reaction-menu { display: none; position: absolute; bottom: -35px; background: #334155; padding: 5px; border-radius: 20px; gap: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 10; white-space: nowrap; }
-        .msg-bubble:hover .reaction-menu { display: flex; }
-        .mine .reaction-menu { right: 0; }
-        .other .reaction-menu { left: 0; }
-        .react-btn { background: none; border: none; font-size: 18px; cursor: pointer; padding: 2px 4px; transition: transform 0.2s; }
-        .react-btn:hover { transform: scale(1.3); }
-        
-        .active-reactions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; cursor: pointer; }
-        .reaction-badge { background: #334155; border: 1px solid #475569; border-radius: 12px; padding: 2px 6px; font-size: 12px; display: flex; align-items: center; gap: 4px; }
-        
-        /* Input Area */
-        #input-area { background-color: var(--chat-bg); padding: 15px; display: flex; gap: 10px; align-items: flex-end; }
-        #message-input { flex: 1; resize: none; border-radius: 20px; padding: 12px 15px; border: 1px solid #475569; background: var(--bg-color); color: white; font-size: 15px; min-height: 45px; max-height: 120px; overflow-y: auto; outline: none; }
-        #send-btn { background-color: var(--primary); color: white; border: none; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
-        #send-btn svg { width: 20px; height: 20px; fill: white; margin-left: 3px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anonymous Room Chat</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; }
+    .app-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; width: 100%; max-width: 480px; height: 90vh; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.4); overflow: hidden; }
+    .header { padding: 16px; background-color: #0f172a; border-bottom: 1px solid #334155; text-align: center; }
+    .header h1 { font-size: 1.15rem; font-weight: 600; }
+    .panel { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    label { font-size: 0.85rem; color: #94a3b8; }
+    input[type="text"] { padding: 10px 14px; border-radius: 6px; border: 1px solid #475569; background-color: #0f172a; color: #f8fafc; font-size: 0.9rem; outline: none; }
+    input[type="text"]:focus { border-color: #38bdf8; }
+    button { padding: 12px; border: none; border-radius: 6px; background-color: #2563eb; color: #ffffff; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+    button:hover { background-color: #1d4ed8; }
+    
+    #chatArea { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+    .messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .msg { max-width: 80%; padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; line-height: 1.4; word-break: break-word; }
+    .msg.incoming { align-self: flex-start; background-color: #334155; color: #f8fafc; }
+    .msg.outgoing { align-self: flex-end; background-color: #2563eb; color: #ffffff; }
+    .msg .sender-label { font-size: 0.7rem; opacity: 0.75; margin-bottom: 2px; display: block; }
+    .msg .time-label { font-size: 0.65rem; opacity: 0.6; margin-top: 4px; display: block; text-align: right; }
+    
+    .chat-input-bar { padding: 12px; background-color: #0f172a; border-top: 1px solid #334155; display: flex; gap: 8px; }
+    .chat-input-bar input { flex: 1; }
+    .chat-input-bar button { padding: 10px 16px; }
+  </style>
 </head>
 <body>
 
+  <div class="app-card">
+    <div class="header">
+      <h1 id="headerTitle">Anonymous Chat</h1>
+    </div>
+
     <!-- Login Screen -->
-    <div id="login-screen">
-        <div class="login-container">
-            <h2>Join Chat</h2>
-            <input type="text" id="username-input" placeholder="Your Username" autocomplete="off">
-            <input type="text" id="room-input" placeholder="Secret Room Name" autocomplete="off">
-            <button class="primary-btn" id="join-btn">Join Room</button>
-        </div>
+    <div class="panel" id="loginPanel">
+      <div class="input-group">
+        <label>Your Username:</label>
+        <input type="text" id="usernameInput" placeholder="e.g. shadow42" />
+      </div>
+      <div class="input-group">
+        <label>Secret Room Name:</label>
+        <input type="text" id="roomInput" placeholder="e.g. vault99" />
+      </div>
+      <button id="joinBtn">Join Room</button>
     </div>
 
     <!-- Chat Screen -->
-    <div id="chat-screen">
-        <div id="chat-header">
-            <span id="room-title">Room: ...</span>
-            <span style="font-size: 14px; color: var(--text-muted);" id="user-display"></span>
-        </div>
-        <div id="chat-box"></div>
-        <div id="input-area">
-            <textarea id="message-input" rows="1" placeholder="Type a message..."></textarea>
-            <button id="send-btn">
-                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
-            </button>
-        </div>
+    <div id="chatArea">
+      <div class="messages" id="messagesBox"></div>
+      <div class="chat-input-bar">
+        <input type="text" id="msgInput" placeholder="Type a message..." />
+        <button id="sendBtn">Send</button>
+      </div>
     </div>
+  </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
-        // Your exact Firebase config
-        const firebaseConfig = {
-            apiKey: "AIzaSyA2sIW2TFBC3J2usxPGZAErBDikxNndGVU",
-            authDomain: "anon-chat-app-bd146.firebaseapp.com",
-            projectId: "anon-chat-app-bd146",
-            storageBucket: "anon-chat-app-bd146.firebasestorage.app",
-            messagingSenderId: "789654062255",
-            appId: "1:789654062255:web:5c5e44252ff07fd62e405a"
-        };
+    const firebaseConfig = {
+      apiKey: "AIzaSyA2sIW2TFBC3J2usxPGZAErBDikxNndGVU",
+      authDomain: "anon-chat-app-bd146.firebaseapp.com",
+      projectId: "anon-chat-app-bd146",
+      storageBucket: "anon-chat-app-bd146.firebasestorage.app",
+      messagingSenderId: "789654062255",
+      appId: "1:789654062255:web:5c5e44252ff07fd62e405a"
+    };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-        // State Variables
-        let currentUser = "";
-        let currentRoom = "";
-        let isInitialLoad = true;
-        
-        // Emojis mapping
-        const rxEmojis = { love: '❤️', haha: '😂', wow: '😲', sad: '😢', angry: '😡', like: '👍' };
-        
-        // Notification Sound
-        const notificationSound = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+    let myName = "";
+    let roomName = "";
 
-        // DOM Elements
-        const loginScreen = document.getElementById('login-screen');
-        const chatScreen = document.getElementById('chat-screen');
-        const joinBtn = document.getElementById('join-btn');
-        const sendBtn = document.getElementById('send-btn');
-        const messageInput = document.getElementById('message-input');
-        const chatBox = document.getElementById('chat-box');
+    const loginPanel = document.getElementById("loginPanel");
+    const chatArea = document.getElementById("chatArea");
+    const messagesBox = document.getElementById("messagesBox");
+    const msgInput = document.getElementById("msgInput");
+    const headerTitle = document.getElementById("headerTitle");
+    const usernameInput = document.getElementById("usernameInput");
+    const roomInput = document.getElementById("roomInput");
 
-        // Request Browser Notifications
-        function requestNotificationPermission() {
-            if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
-                Notification.requestPermission();
-            }
-        }
+    const savedName = localStorage.getItem("anon_username");
+    const savedRoom = localStorage.getItem("anon_room");
+    
+    if (savedName) usernameInput.value = savedName;
+    if (savedRoom) roomInput.value = savedRoom;
 
-        // GMT+6 Time/Date Formatters
-        function getMsgDate(timestamp) {
-            return timestamp ? timestamp.toDate() : new Date();
-        }
-        function getDhakaDateString(date) {
-            return new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Dhaka', year: 'numeric', month: 'long', day: 'numeric' }).format(date);
-        }
-        function getDhakaTimeString(date) {
-            return new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit', hour12: true }).format(date);
-        }
+    document.getElementById("joinBtn").addEventListener("click", () => {
+      myName = usernameInput.value.trim();
+      roomName = roomInput.value.trim().toLowerCase();
 
-        // Join Room Logic
-        joinBtn.addEventListener('click', () => {
-            const user = document.getElementById('username-input').value.trim();
-            const room = document.getElementById('room-input').value.trim();
-            
-            if (user && room) {
-                currentUser = user;
-                currentRoom = room;
-                document.getElementById('room-title').innerText = `Room: ${room}`;
-                document.getElementById('user-display').innerText = user;
-                
-                loginScreen.style.display = 'none';
-                chatScreen.style.display = 'flex';
-                
-                requestNotificationPermission();
-                loadMessages();
-            } else {
-                alert("Please enter both username and room name.");
-            }
+      if (!myName || !roomName) {
+        alert("Please enter both a username and a room name.");
+        return;
+      }
+
+      localStorage.setItem("anon_username", myName);
+      localStorage.setItem("anon_room", roomName);
+
+      loginPanel.style.display = "none";
+      chatArea.style.display = "flex";
+      headerTitle.innerText = `Room: ${roomName}`;
+
+      loadMessages();
+    });
+
+    function loadMessages() {
+      const messagesRef = collection(db, "chats", roomName, "messages");
+      const q = query(messagesRef, orderBy("timestamp", "asc"));
+
+      onSnapshot(q, (snapshot) => {
+        messagesBox.innerHTML = ""; 
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          displayMessage(data);
         });
+        messagesBox.scrollTop = messagesBox.scrollHeight;
+      });
+    }
 
-        // Load and Listen to Messages
-        function loadMessages() {
-            const q = query(
-                collection(db, "messages"), 
-                where("room", "==", currentRoom), 
-                orderBy("timestamp", "asc")
-            );
+    async function sendMessage() {
+      const text = msgInput.value.trim();
+      if (!text) return;
+      msgInput.value = "";
 
-            onSnapshot(q, (snapshot) => {
-                chatBox.innerHTML = ''; // Re-render chat on update for exact date alignment
-                let lastDateStr = "";
+      await addDoc(collection(db, "chats", roomName, "messages"), {
+        sender: myName,
+        text: text,
+        timestamp: serverTimestamp()
+      });
+    }
 
-                snapshot.forEach((msgDoc) => {
-                    const data = msgDoc.data();
-                    const msgId = msgDoc.id;
-                    const dateObj = getMsgDate(data.timestamp);
-                    const currentMsgDateStr = getDhakaDateString(dateObj);
+    document.getElementById("sendBtn").addEventListener("click", sendMessage);
+    msgInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
 
-                    // Mark as read if a new message arrives from someone else and it's currently unread
-                    if (data.sender !== currentUser && !data.isRead) {
-                        const msgRef = doc(db, "messages", msgId);
-                        updateDoc(msgRef, { isRead: true }).catch(err => console.log(err));
-                    }
+    function displayMessage(data) {
+      const isMe = data.sender === myName;
+      const bubble = document.createElement("div");
+      bubble.classList.add("msg", isMe ? "outgoing" : "incoming");
 
-                    // Inject Date Divider if day has changed (after 12:00 AM)
-                    if (currentMsgDateStr !== lastDateStr) {
-                        chatBox.innerHTML += `<div class="date-divider"><span>${currentMsgDateStr}</span></div>`;
-                        lastDateStr = currentMsgDateStr;
-                    }
+      const label = document.createElement("span");
+      label.classList.add("sender-label");
+      label.innerText = data.sender;
 
-                    renderMessage(msgId, data, dateObj);
-                });
+      const body = document.createElement("span");
+      body.innerText = data.text;
 
-                // Handle Audio/Push Notifications for New Messages
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === "added") {
-                        const data = change.doc.data();
-                        if (!isInitialLoad && data.sender !== currentUser) {
-                            notificationSound.play().catch(e => console.log("Audio play blocked by browser"));
-                            if (Notification.permission === "granted") {
-                                new Notification(`New message from ${data.sender}`, { body: data.text });
-                            }
-                        }
-                        scrollToBottom();
-                    }
-                });
+      bubble.appendChild(label);
+      bubble.appendChild(body);
 
-                if (isInitialLoad) {
-                    scrollToBottom();
-                    isInitialLoad = false;
-                }
-            });
-        }
+      if (data.timestamp) {
+        const timeLabel = document.createElement("span");
+        timeLabel.classList.add("time-label");
+        const date = data.timestamp.toDate();
+        timeLabel.innerText = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        bubble.appendChild(timeLabel);
+      }
 
-        // Render Individual Message
-        function renderMessage(docId, data, dateObj) {
-            const isMine = data.sender === currentUser;
-            const timeStr = getDhakaTimeString(dateObj);
-            
-            // Generate Reactions HTML
-            let activeRxHtml = '';
-            let rxDetailsObj = {}; 
-            
-            if (data.reactions) {
-                const rxCounts = {};
-                for (const [user, rxType] of Object.entries(data.reactions)) {
-                    rxCounts[rxType] = (rxCounts[rxType] || 0) + 1;
-                    if (!rxDetailsObj[rxType]) rxDetailsObj[rxType] = [];
-                    rxDetailsObj[rxType].push(user);
-                }
-                
-                let popupText = "";
-                for (const [rxType, users] of Object.entries(rxDetailsObj)) {
-                    popupText += `${rxEmojis[rxType]}: ${users.join(', ')}\n`;
-                }
-
-                for (const [rxType, count] of Object.entries(rxCounts)) {
-                    activeRxHtml += `<div class="reaction-badge" onclick="alert('Reactions:\\n\\n${popupText}')">${rxEmojis[rxType]} ${count}</div>`;
-                }
-            }
-
-            const activeRxContainer = activeRxHtml ? `<div class="active-reactions">${activeRxHtml}</div>` : '';
-
-            // Generate Read Receipts (Ticks) for outgoing messages
-            let readStatusHtml = '';
-            if (isMine) {
-                if (data.isRead) {
-                    readStatusHtml = `<span class="msg-status read" title="Read">✓✓</span>`;
-                } else {
-                    readStatusHtml = `<span class="msg-status sent" title="Sent">✓</span>`;
-                }
-            }
-
-            const msgHtml = `
-                <div class="msg-wrapper ${isMine ? 'mine' : 'other'}">
-                    ${!isMine ? `<div class="sender-name">${data.sender}</div>` : ''}
-                    <div class="msg-bubble">
-                        ${escapeHTML(data.text)}
-                        
-                        <div class="time-and-status">
-                            <span class="msg-time">${timeStr}</span>
-                            ${readStatusHtml}
-                        </div>
-                        
-                        <!-- Reaction Hover Menu -->
-                        <div class="reaction-menu">
-                            ${Object.keys(rxEmojis).map(rx => 
-                                `<button class="react-btn" onclick="addReaction('${docId}', '${rx}')">${rxEmojis[rx]}</button>`
-                            ).join('')}
-                        </div>
-                    </div>
-                    ${activeRxContainer}
-                </div>
-            `;
-            chatBox.innerHTML += msgHtml;
-        }
-
-        // Add Reaction to Firestore
-        window.addReaction = async function(docId, rxType) {
-            const msgRef = doc(db, "messages", docId);
-            const updateField = {};
-            updateField[`reactions.${currentUser}`] = rxType;
-            await updateDoc(msgRef, updateField);
-        };
-
-        // Send Message Logic
-        async function sendMessage() {
-            const text = messageInput.value.trim();
-            if (!text) return;
-
-            messageInput.value = ''; 
-            messageInput.style.height = '45px'; 
-
-            await addDoc(collection(db, "messages"), {
-                room: currentRoom,
-                sender: currentUser,
-                text: text,
-                isRead: false, // Set to unread when first sent
-                timestamp: serverTimestamp()
-            });
-            scrollToBottom();
-        }
-
-        sendBtn.addEventListener('click', sendMessage);
-
-        // Auto-resize textarea logic
-        messageInput.addEventListener('input', function() {
-            this.style.height = '45px';
-            this.style.height = (this.scrollHeight) + 'px';
-        });
-
-        function scrollToBottom() {
-            setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 100);
-        }
-
-        function escapeHTML(str) {
-            return str.replace(/[&<>'"]/g, tag => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-            }[tag]));
-        }
-    </script>
+      messagesBox.appendChild(bubble);
+    }
+  </script>
 </body>
 </html>
