@@ -88,6 +88,13 @@
     .reply-bar button { padding: 2px 8px; background: transparent; color: var(--muted); font-size: 1.1rem; }
     .reply-bar button:hover { background: var(--surface-2); }
 
+    .typing-bar { height: 24px; padding: 0 16px; display: flex; align-items: center; gap: 8px; background: var(--bg); color: var(--muted); font-size: 0.72rem; opacity: 0; transition: opacity 0.15s ease; flex-shrink: 0; }
+    .typing-bar.show { opacity: 1; }
+    .typing-dots { display: inline-flex; gap: 3px; align-items: center; }
+    .typing-dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--primary); animation: typingBounce 1.2s infinite ease-in-out; }
+    .typing-dots i:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dots i:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-3px); opacity: 1; } }
     .chat-input-bar { padding: 12px 12px 4px; background-color: var(--bg); border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: flex-end; }
     .chat-input-bar textarea { flex: 1; resize: none; max-height: 120px; line-height: 1.4; }
     .chat-input-bar button { padding: 0; width: 46px; height: 42px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -102,6 +109,7 @@
     .desktop .row { max-width: 70%; }
     .desktop .msg { font-size: 0.95rem; padding: 9px 14px; }
     .desktop .reply-bar { padding: 8px 20px; }
+    .desktop .typing-bar { padding: 0 22px; }
     .desktop .chat-input-bar { padding: 14px 20px 4px; }
     .desktop .hint { padding: 2px 22px 10px; }
   </style>
@@ -130,6 +138,10 @@
     <!-- Chat Screen -->
     <div id="chatArea">
       <div class="messages" id="messagesBox"></div>
+      <div class="typing-bar" id="typingBar" aria-live="polite">
+        <span class="typing-dots"><i></i><i></i><i></i></span>
+        <span id="typingText"></span>
+      </div>
       <div class="reply-bar" id="replyBar">
         <div class="r-info">
           <span class="r-name" id="replyName"></span>
@@ -147,7 +159,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-    import { getFirestore, collection, doc, addDoc, updateDoc, writeBatch, deleteField, FieldPath, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, addDoc, setDoc, updateDoc, writeBatch, deleteField, FieldPath, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyA2sIW2TFBC3J2usxPGZAErBDikxNndGVU",
@@ -252,6 +264,7 @@
       refreshBtn.style.display = "flex";
       headerTitle.innerText = `Room: ${roomName}`;
       subscribe("bottom");
+      subscribeTyping();
     });
 
     /* ---------- Real-time subscription ---------- */
@@ -279,6 +292,7 @@
           const d = ch.doc;
           const data = d.data({ serverTimestamps: "estimate" });
           const isNew = !store.has(d.id);
+          if (!first && isNew && ch.type === "added" && data.sender !== myName && typers.delete(typingDocId(data.sender))) renderTyping();
           if (!first && isNew && ch.type === "added" && !d.metadata.hasPendingWrites && data.sender !== myName) notifyNewMessage(data);
           const ms = data.timestamp && data.timestamp.toMillis ? data.timestamp.toMillis() : Date.now();
           store.set(d.id, { id: d.id, data, ms, key: dayKey(new Date(ms)), pending: d.metadata.hasPendingWrites });
@@ -307,6 +321,7 @@
       ui = { picker: null, details: null };
       retryDelay = 1000;
       subscribe("bottom");
+      subscribeTyping();
       scheduleRender({ bottom: true });
     });
 
@@ -564,6 +579,106 @@
       else if (opts.bottom || nearBottom) messagesBox.scrollTop = messagesBox.scrollHeight;
     }
 
+    /* ---------- Typing indicator ---------- */
+    // Stored at chats/{room}/typing/{userDocId} = { typing, user, at }. Separate from messages, so history is untouched.
+    const TYPING_IDLE_MS = 2500;     // stop after this long with no keystrokes
+    const TYPING_BEAT_MS = 5000;     // refresh while continuously typing (lets crashed clients expire)
+    const TYPING_TTL_MS = 10000;     // viewers drop a typer not refreshed within this time
+    const TYPING_MAX_AGE_MS = 60000; // ignore stale "typing" docs left by crashed clients
+    const typingDocId = (name) => "u_" + encodeURIComponent(name).replace(/\./g, "%2E");
+    const typingBar = $("typingBar"), typingText = $("typingText");
+    const typers = new Map();        // docId -> { name, seen }
+    let isTyping = false, typingIdleTimer = null, lastTypingWrite = 0;
+    let unsubTyping = null, typingGen = 0, typingRetry = null, typingRetryDelay = 5000, expireTimer = null;
+
+    function writeTyping(state) {
+      lastTypingWrite = Date.now();
+      setDoc(doc(db, "chats", roomName, "typing", typingDocId(myName)), { typing: state, user: myName, at: Date.now() })
+        .catch((e) => console.warn("Typing update failed:", e));
+    }
+
+    function handleTyping() { // called on input; writes only when state changes (or a 5s refresh)
+      if (!joined) return;
+      if (!msgInput.value.trim()) { stopTyping(); return; }
+      if (!isTyping) { isTyping = true; writeTyping(true); }
+      else if (Date.now() - lastTypingWrite > TYPING_BEAT_MS) writeTyping(true);
+      clearTimeout(typingIdleTimer);
+      typingIdleTimer = setTimeout(stopTyping, TYPING_IDLE_MS);
+    }
+
+    function stopTyping() {
+      clearTimeout(typingIdleTimer);
+      typingIdleTimer = null;
+      if (!isTyping) return;
+      isTyping = false;
+      writeTyping(false);
+    }
+
+    function clearTypingOnExit() { // refresh / tab close: keepalive REST call survives page unload
+      if (!isTyping || !joined) return;
+      isTyping = false;
+      clearTimeout(typingIdleTimer);
+      try { writeTyping(false); } catch (e) { /* ignore */ }
+      try {
+        const url = "https://firestore.googleapis.com/v1/projects/" + firebaseConfig.projectId +
+          "/databases/(default)/documents/chats/" + encodeURIComponent(roomName) + "/typing/" + encodeURIComponent(typingDocId(myName)) +
+          "?updateMask.fieldPaths=typing&updateMask.fieldPaths=user&updateMask.fieldPaths=at&key=" + firebaseConfig.apiKey;
+        fetch(url, {
+          method: "PATCH", keepalive: true, headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fields: { typing: { booleanValue: false }, user: { stringValue: myName }, at: { integerValue: String(Date.now()) } } })
+        }).catch(() => {});
+      } catch (e) { /* ignore */ }
+    }
+    window.addEventListener("pagehide", clearTypingOnExit);
+    window.addEventListener("beforeunload", clearTypingOnExit);
+    window.addEventListener("offline", () => { stopTyping(); typers.clear(); renderTyping(); }); // connection lost
+
+    function pruneTypers() {
+      const now = Date.now();
+      let changed = false;
+      typers.forEach((t, k) => { if (now - t.seen > TYPING_TTL_MS) { typers.delete(k); changed = true; } });
+      if (changed) renderTyping();
+    }
+
+    function renderTyping() {
+      const names = Array.from(typers.values()).map((t) => t.name).sort((a, b) => a.localeCompare(b));
+      let text = "";
+      if (names.length === 1) text = names[0] + " is typing...";
+      else if (names.length === 2) text = names[0] + " and " + names[1] + " are typing...";
+      else if (names.length > 2) text = names.length + " people are typing...";
+      if (typingText.textContent !== text) typingText.textContent = text;
+      typingBar.classList.toggle("show", names.length > 0);
+      if (names.length && !expireTimer) expireTimer = setInterval(pruneTypers, 1000);
+      else if (!names.length && expireTimer) { clearInterval(expireTimer); expireTimer = null; }
+    }
+
+    function subscribeTyping() { // single listener; previous one is always closed first
+      if (unsubTyping) { unsubTyping(); unsubTyping = null; }
+      clearTimeout(typingRetry);
+      typers.clear();
+      renderTyping();
+      const gen = ++typingGen;
+      const myId = typingDocId(myName);
+      unsubTyping = onSnapshot(collection(db, "chats", roomName, "typing"), (snap) => {
+        if (gen !== typingGen) return;
+        typingRetryDelay = 5000;
+        const now = Date.now();
+        snap.docChanges().forEach((ch) => {
+          const d = ch.doc, data = d.data();
+          if (d.id === myId || data.user === myName) return; // never show my own indicator
+          if (ch.type !== "removed" && data.typing === true && now - (data.at || 0) < TYPING_MAX_AGE_MS) {
+            typers.set(d.id, { name: data.user || "Someone", seen: now });
+          } else typers.delete(d.id);
+        });
+        renderTyping();
+      }, (err) => {
+        if (gen !== typingGen) return;
+        console.warn("Typing listener error (check Firestore rules for chats/{room}/typing):", err);
+        typingRetry = setTimeout(subscribeTyping, typingRetryDelay);
+        typingRetryDelay = Math.min(typingRetryDelay * 2, 60000);
+      });
+    }
+
     /* ---------- Sending ---------- */
     function autoGrow() {
       msgInput.style.height = "auto";
@@ -576,6 +691,7 @@
       msgInput.value = "";
       autoGrow();
       msgInput.focus();
+      stopTyping();
 
       const target = replyTarget;
       const payload = { sender: myName, text: text, timestamp: serverTimestamp() };
@@ -597,7 +713,7 @@
     }
 
     $("sendBtn").addEventListener("click", sendMessage);
-    msgInput.addEventListener("input", autoGrow);
+    msgInput.addEventListener("input", () => { autoGrow(); handleTyping(); });
 
     // Desktop = mouse/trackpad device that is not a phone/tablet
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -619,6 +735,7 @@
         e.preventDefault();
         msgInput.setRangeText("\n", msgInput.selectionStart, msgInput.selectionEnd, "end");
         autoGrow();
+        handleTyping();
       } else if (!e.shiftKey) {
         e.preventDefault(); // Enter: send. Shift+Enter falls through and inserts a new line.
         sendMessage();
